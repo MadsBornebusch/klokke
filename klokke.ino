@@ -5,11 +5,11 @@
 #include "klokke.h"
 #include <EEPROM.h>
 
-#define MIN_IN_DAY 1440// Minutes in a day
-#define ENDTIME_W 420    // Time the watches must be finished (winter)
-#define ENDTIME_S 360  // Time the watches must be finished during the summer
-#define EVENINGTIME 1080 // 18:00
-#define DLSTIME 500    // Time that daylight savings adjustment is checked
+#define MIN_IN_DAY (24*60)          // Minutes in a day
+#define ENDTIME_W (9*60)            // Time the watches must be finished (winter)
+#define ENDTIME_S (ENDTIME_W - 60)  // Time the watches must be finished during the summer
+#define EVENINGTIME (18*60)         // When the battery is checked 
+#define DLSTIME 500                 // Time that daylight savings adjustment is checked
 #define LBATTVOLTAGE 3450
 
 DS3231 myRTC;
@@ -29,8 +29,9 @@ bool disable = false;  //Don't start the clocks (late start or low batt)
 
 // Settings
 uint8_t debug = 1;        // Write more stuff to the serial port
+uint8_t set_rtc = 0;      // Set the RTC to the current time
 uint8_t reset_eeprom = 5; // Reset the clock states if first boot after programming
-uint8_t startDay = 23;    // The number that the thing shows now
+uint8_t startDay = 4;    // The number that the thing shows now
 uint8_t fast = 0;         // Don't use RTC, but instead progress as fast as possible. For debug.
 
 
@@ -105,7 +106,7 @@ void apply_clock_states_row(uint8_t states, uint8_t row) {
 }
 
 int64_t get_now() {
-  DateTime now = DateTime(myRTC.getYear(), myRTC.getMonth(century), myRTC.getDate());
+  DateTime now = DateTime(myRTC.getYear(), myRTC.getMonth(century), myRTC.getDate(), myRTC.getHour(h12, pm), myRTC.getMinute(), myRTC.getSecond());
   if(fast==1) {
     return (int32_t) (unixtime_min + random(0,2));
   }else{
@@ -189,6 +190,17 @@ void setup() {
   Wire.begin();
   setup_alarm();
 
+  if(set_rtc) {
+    if (setRTC(__TIME__, __DATE__)) 
+    {
+      Serial.println(F("RTC set to " __TIME__ " " __DATE__));
+    } 
+    else 
+    {
+      Serial.println(F("Failed to set RTC!"));
+    }
+  }
+
   if(debug==1) {
     Serial.begin(115200);
     Serial.println(F("Starting"));
@@ -208,8 +220,8 @@ void setup() {
   }
 
   // Disable if powered on less than 12 hours before ENDTIME
-  uint32_t starttime = get_now() % 1440;
-  if(starttime < ENDTIME || starttime > (ENDTIME + 720)) {
+  uint32_t starttime = get_now() % MIN_IN_DAY;
+  if(starttime < ENDTIME || starttime > (ENDTIME + MIN_IN_DAY/2)) {
     disable = true;
   }
 
@@ -221,6 +233,8 @@ void setup() {
 
   // Read the clock states stored in EEPROM
   startDay = EEPROM.read(0);
+  Serial.print(F("Start day: "));
+  Serial.println(startDay);
   uint8_t day[2];
   int8_t k;
   day[0] = startDay / 10;
@@ -234,9 +248,9 @@ void setup() {
 
   setEndTime();
   // Wait until next day in case power/reset in the evening
-  do {
-    unixtime_min = wait_new_minute();
-  } while (((unixtime_min%MIN_IN_DAY) > EVENINGTIME) || ((unixtime_min%MIN_IN_DAY) < ENDTIME));
+  // do {
+  //   unixtime_min = wait_new_minute();
+  // } while (((unixtime_min%MIN_IN_DAY) > EVENINGTIME) || ((unixtime_min%MIN_IN_DAY) < ENDTIME));
 }
 
 // Calculate how many minutes a clock must run to reach
@@ -269,10 +283,12 @@ void update_states() {
   uint8_t diff = 0;        // If there is a diff, one or more clocks needs to turn on
   day[0] = dom / 10;
   day[1] = dom % 10;
-  if(debug==1) { // Print the unixtime in milliseconds for offline simulation
-    Serial.print(((uint32_t) (unixtime_min%MIN_IN_DAY))*6);
-    Serial.print("0000,");
-  }
+  // if(debug==1) { // Print the unixtime in milliseconds for offline simulation
+  //   Serial.print(((uint32_t) (unixtime_min%MIN_IN_DAY))*6);
+  //   Serial.print("0000,");
+  // }
+  Serial.print("Target day: ");
+  Serial.println(dom);
 
   for(int8_t i=0;i<6;i++) {
     byte start_byte = 0;
@@ -353,6 +369,29 @@ void low_battery() {
   }
   Serial.print("Batt: ");
   Serial.println((uint32_t) mv_batt);
+}
+
+bool setRTC(const char *time, const char *date)
+{
+  char MonthStr[12];
+  int Day, Month, Year, Hour, Min, Sec;
+
+  if (sscanf(time, "%d:%d:%d", &Hour, &Min, &Sec) != 3) return false;
+  if (sscanf(date, "%s %d %d", MonthStr, &Day, &Year) != 3) return false;
+  for (Month = 0; Month < 12; Month++) {
+    if (strcmp(MonthStr, monthName[Month]) == 0) break;
+  }
+  if (Month >= 12) return false;
+  Month++;
+
+  myRTC.setClockMode(false);
+  myRTC.setYear(Year % 100);
+  myRTC.setMonth(Month);
+  myRTC.setDate(Day);
+  myRTC.setHour(Hour);
+  myRTC.setMinute(Min);
+  myRTC.setSecond(Sec);
+  return true;
 }
 
 void loop() {

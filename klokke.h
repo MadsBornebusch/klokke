@@ -118,13 +118,13 @@ bool isNorwegianWinterTime(uint8_t month, uint8_t day, uint8_t day_of_week) {
     }
 
     bool last_sunday_in_month_or_later;
-    last_sunday_in_month_or_later = (day_of_week == 7) && (day > 24) ||
-                                    (day_of_week == 1) && (day > 25) ||
-                                    (day_of_week == 2) && (day > 26) ||
-                                    (day_of_week == 3) && (day > 27) ||
-                                    (day_of_week == 4) && (day > 28) ||
-                                    (day_of_week == 5) && (day > 29) ||
-                                    (day_of_week == 6) && (day > 30);
+    last_sunday_in_month_or_later = ((day_of_week == 7) && (day > 24)) ||
+                                    ((day_of_week == 1) && (day > 25)) ||
+                                    ((day_of_week == 2) && (day > 26)) ||
+                                    ((day_of_week == 3) && (day > 27)) ||
+                                    ((day_of_week == 4) && (day > 28)) ||
+                                    ((day_of_week == 5) && (day > 29)) ||
+                                    ((day_of_week == 6) && (day > 30));
 
     if(month == 3) {
       return !last_sunday_in_month_or_later;
@@ -132,3 +132,8 @@ bool isNorwegianWinterTime(uint8_t month, uint8_t day, uint8_t day_of_week) {
       return last_sunday_in_month_or_later;
     }
 }
+
+const char *monthName[12] = {
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
