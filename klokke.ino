@@ -31,7 +31,7 @@ bool disable = false;  //Don't start the clocks (late start or low batt)
 uint8_t debug = 1;        // Write more stuff to the serial port
 uint8_t set_rtc = 0;      // Set the RTC to the current time
 uint8_t reset_eeprom = 5; // Reset the clock states if first boot after programming
-uint8_t startDay = 4;    // The number that the thing shows now
+uint8_t startDay = 17;    // The number that the thing shows now
 uint8_t fast = 0;         // Don't use RTC, but instead progress as fast as possible. For debug.
 
 
