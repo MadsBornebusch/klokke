@@ -10,7 +10,7 @@
 #define ENDTIME_S (ENDTIME_W - 60)  // Time the watches must be finished during the summer
 #define EVENINGTIME (18*60)         // When the battery is checked 
 #define DLSTIME 500                 // Time that daylight savings adjustment is checked
-#define LBATTVOLTAGE 3450
+#define LBATTVOLTAGE 3550
 
 DS3231 myRTC;
 bool century = false;
@@ -28,10 +28,10 @@ bool disable = false;  //Don't start the clocks (late start or low batt)
 
 
 // Settings
-uint8_t debug = 1;        // Write more stuff to the serial port
+uint8_t debug = 0;        // Write more stuff to the serial port
 uint8_t set_rtc = 0;      // Set the RTC to the current time
-uint8_t reset_eeprom = 5; // Reset the clock states if first boot after programming
-uint8_t startDay = 17;    // The number that the thing shows now
+uint8_t reset_eeprom = 0; // Reset the clock states if first boot after programming
+uint8_t startDay = 9;    // The number that the thing shows now
 uint8_t fast = 0;         // Don't use RTC, but instead progress as fast as possible. For debug.
 
 
@@ -248,9 +248,9 @@ void setup() {
 
   setEndTime();
   // Wait until next day in case power/reset in the evening
-  // do {
-  //   unixtime_min = wait_new_minute();
-  // } while (((unixtime_min%MIN_IN_DAY) > EVENINGTIME) || ((unixtime_min%MIN_IN_DAY) < ENDTIME));
+  do {
+    unixtime_min = wait_new_minute();
+  } while (((unixtime_min%MIN_IN_DAY) > EVENINGTIME) || ((unixtime_min%MIN_IN_DAY) < ENDTIME));
 }
 
 // Calculate how many minutes a clock must run to reach
